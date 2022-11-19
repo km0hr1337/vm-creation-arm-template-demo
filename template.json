@@ -1,0 +1,157 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2015-06-15",
+            "name": "linuxVMVNET",
+            "location": "East US",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "linuxVMSubnet",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2015-06-15",
+            "name": "linuxVMNSG",
+            "location": "East US",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-ssh",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-01-01",
+            "name": "linuxVMPublicIP",
+            "location": "East US",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "publicIPAllocationMethod": null
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2015-06-15",
+            "name": "linuxVMVMNic",
+            "location": "East US",
+            "dependsOn": [
+                "Microsoft.Network/virtualNetworks/linuxVMVNET",
+                "Microsoft.Network/networkSecurityGroups/linuxVMNSG",
+                "Microsoft.Network/publicIpAddresses/linuxVMPublicIP"
+            ],
+            "tags": {},
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfiglinuxVM",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "/subscriptions/yourSubscription/resourceGroups/yourResourceGroup/providers/Microsoft.Network/virtualNetworks/linuxVMVNET/subnets/linuxVMSubnet"
+                            },
+                            "publicIPAddress": {
+                                "id": "/subscriptions/yourSubscription/resourceGroups/yourResourceGroup/providers/Microsoft.Network/publicIPAddresses/linuxVMPublicIP"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "/subscriptions/yourSubscription/resourceGroups/yourResourceGroup/providers/Microsoft.Network/networkSecurityGroups/linuxVMNSG"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2022-08-01",
+            "name": "linuxVM",
+            "location": "East US",
+            "dependsOn": [
+                "Microsoft.Network/networkInterfaces/linuxVMVMNic"
+            ],
+            "tags": {},
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "/subscriptions/yourSubscription/resourceGroups/yourResourceGroup/providers/Microsoft.Network/networkInterfaces/linuxVMVMNic",
+                            "properties": {
+                                "deleteOption": null
+                            }
+                        }
+                    ]
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "name": null,
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": null
+                        }
+                    },
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    }
+                },
+                "osProfile": {
+                    "computerName": "linuxVM",
+                    "adminUsername": "cloud",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "keyData": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDOw8/BXJR1SSuoZgtoDI05YcYR2uDp7AuuIGuGmtu/AugTkes0uC5MfU9vO4HTLcSDVpuN+fObofhiLSDCJpL1Vo9aCcnTf4xB96LrjaRErEnAaVsROP3knZHYd/WiLuAaC1UmcRLETU2QxAXD2AGcppeA6t2icfQc+DAq7qVRRvvprWicq3JAtCXbkFJncdExdWnHdAkRmCv5/bM1+UsQpwMJP2EHu8SO0LqlEa5HyuLkObXtW6Hrd2XINzusPrgUiDegeRzu05uK/7L7ffeyJQgHxtrYN2mR62yz63khf6Gr1n6nB5w4j1SSROaD6h2i+wuG4YPWDUnTsVvR86Ff",
+                                    "path": "/home/cloud/.ssh/authorized_keys"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
+
+
